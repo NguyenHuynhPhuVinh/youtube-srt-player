@@ -29,12 +29,22 @@ const HomeScreen = () => {
 
   useEffect(() => {
     const loadSavedSRT = async () => {
-      if (!currentUrl) return;
-
       // Reset subtitles when URL changes
       setSrtContent("");
       setSubtitles([]);
       setCurrentSubtitle("");
+
+      // Clear subtitle on WebView
+      if (webViewRef.current) {
+        webViewRef.current.postMessage(
+          JSON.stringify({
+            type: "setSubtitle",
+            payload: "",
+          })
+        );
+      }
+
+      if (!currentUrl) return;
 
       const savedSRT = await getSRT(currentUrl);
       if (savedSRT) {
@@ -67,11 +77,15 @@ const HomeScreen = () => {
       navState.url.includes("/watch") || navState.url.includes("/shorts/");
     setIsVideoPlaying(isWatchPage);
 
-    // Only update URL if it's a video page and different from current
-    if (isWatchPage && navState.url !== currentUrl) {
-      // Simple check to avoid reloading on small param changes if needed,
-      // but for now strictly following URL is safer for "per video" logic
-      setCurrentUrl(navState.url);
+    if (isWatchPage) {
+      if (navState.url !== currentUrl) {
+        setCurrentUrl(navState.url);
+      }
+    } else {
+      // If we are not watching a video, clear the current URL
+      if (currentUrl !== "") {
+        setCurrentUrl("");
+      }
     }
   };
 
