@@ -80,8 +80,10 @@ const INJECTED_JAVASCRIPT = `
       const fsElement = document.fullscreenElement || document.webkitFullscreenElement;
       if (fsElement) {
         fsElement.appendChild(subtitleLayer);
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'fullscreen_open' }));
       } else {
         document.body.appendChild(subtitleLayer);
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'fullscreen_close' }));
       }
     }
 
@@ -118,6 +120,10 @@ const MainApp = () => {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === "currentTime") {
         findSubtitle(data.payload);
+      } else if (data.type === "fullscreen_open") {
+        onFullScreenOpen();
+      } else if (data.type === "fullscreen_close") {
+        onFullScreenClose();
       }
     } catch (e) {}
   };
