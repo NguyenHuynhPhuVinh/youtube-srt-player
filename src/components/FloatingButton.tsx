@@ -1,7 +1,5 @@
 import React from "react";
-import { TouchableOpacity, Text, StyleSheet } from "react-native";
-
-import { COLORS } from "@constants/colors";
+import { TouchableOpacity, Text } from "react-native";
 
 interface FloatingButtonProps {
   onPress: () => void;
@@ -16,35 +14,13 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
 
   return (
     <TouchableOpacity
-      style={styles.fabButton}
+      className="absolute bottom-6 right-6 w-14 h-14 rounded-full bg-[#FF0000] justify-center items-center z-20 shadow-none"
       onPress={onPress}
       activeOpacity={0.8}
     >
-      <Text style={styles.fabIcon}>+</Text>
+      <Text className="text-3xl text-white font-light -mt-0.5">+</Text>
     </TouchableOpacity>
   );
 };
-
-const styles = StyleSheet.create({
-  fabButton: {
-    position: "absolute",
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.accent,
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 20,
-    elevation: 0,
-  },
-  fabIcon: {
-    fontSize: 32,
-    color: COLORS.text,
-    fontWeight: "300",
-    marginTop: -2,
-  },
-});
 
 export default FloatingButton;

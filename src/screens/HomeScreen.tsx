@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { View, StyleSheet, Alert, StatusBar } from "react-native";
+import { View, Alert, StatusBar } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ScreenOrientation from "expo-screen-orientation";
 import {
@@ -12,8 +12,6 @@ import { parseSRT, fixSRT, SubtitleItem } from "@utils/srtParser";
 import YouTubePlayer from "@components/YouTubePlayer";
 import SubtitleInputModal from "@components/SubtitleInputModal";
 import FloatingButton from "@components/FloatingButton";
-
-import { COLORS } from "@constants/colors";
 
 const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -95,12 +93,10 @@ const HomeScreen = () => {
 
   return (
     <View
-      style={[
-        styles.container,
-        { paddingTop: insets.top, paddingBottom: insets.bottom },
-      ]}
+      className="flex-1 bg-black"
+      style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
     >
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
       <YouTubePlayer
         ref={webViewRef}
@@ -123,12 +119,5 @@ const HomeScreen = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-});
 
 export default HomeScreen;
