@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import {
   StyleSheet,
   Text,
@@ -6,19 +6,22 @@ import {
   Modal,
   TextInput,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   Platform,
+  KeyboardAvoidingView,
+  Dimensions,
 } from "react-native";
 import { WebView } from "react-native-webview";
-import * as ScreenOrientation from "expo-screen-orientation";
 import { parseSRT } from "./src/utils/srtParser";
+import {
+  SafeAreaProvider,
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
-// UserAgent giả lập Chrome trên Android để có giao diện YouTube đầy đủ tính năng
 const CUSTOM_USER_AGENT =
   "Mozilla/5.0 (Linux; Android 13; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36";
 
-// Script tiêm vào WebView để lấy thời gian video
 const INJECTED_JAVASCRIPT = `
   (function() {
     let lastTime = -1;
@@ -26,7 +29,6 @@ const INJECTED_JAVASCRIPT = `
       const video = document.querySelector('video');
       if (video && !video.paused) {
         const currentTime = video.currentTime;
-        // Chỉ gửi tin nhắn nếu thời gian thay đổi đáng kể để giảm tải
         if (Math.abs(currentTime - lastTime) > 0.1) {
           lastTime = currentTime;
           window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -35,37 +37,39 @@ const INJECTED_JAVASCRIPT = `
           }));
         }
       }
-    }, 100); // Check mỗi 100ms
-
-    // Ẩn một số thành phần không cần thiết để thoáng màn hình hơn (tùy chọn)
-    // document.querySelector('header')?.style.display = 'none';
+    }, 100);
   })();
   true;
 `;
 
-export default function App() {
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+
+// Tách component chính ra để dùng hook useSafeAreaInsets
+const MainApp = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [srtContent, setSrtContent] = useState("");
   const [subtitles, setSubtitles] = useState([]);
   const [currentSubtitle, setCurrentSubtitle] = useState("");
-  const [isHorizontal, setIsHorizontal] = useState(false);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
   const webViewRef = useRef(null);
+  const insets = useSafeAreaInsets(); // Lấy thông số tai thỏ/thanh điều hướng
 
-  // Xử lý tin nhắn từ WebView (nhận thời gian video)
   const handleWebViewMessage = (event) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === "currentTime") {
-        const currentTime = data.payload;
-        findSubtitle(currentTime);
+        findSubtitle(data.payload);
       }
-    } catch (e) {
-      // Ignore parse errors
-    }
+    } catch (e) {}
   };
 
-  // Tìm phụ đề khớp với thời gian hiện tại
+  const handleNavigationStateChange = (navState) => {
+    const isWatchPage =
+      navState.url.includes("/watch") || navState.url.includes("/shorts/");
+    setIsVideoPlaying(isWatchPage);
+  };
+
   const findSubtitle = (seconds) => {
     const sub = subtitles.find(
       (s) => seconds >= s.startTime && seconds <= s.endTime
@@ -73,36 +77,20 @@ export default function App() {
     setCurrentSubtitle(sub ? sub.text : "");
   };
 
-  // Xử lý khi bấm nút "XEM" (Load sub và xoay ngang)
-  const handleLoadSubtitles = async () => {
+  const handleLoadSubtitles = () => {
     const parsed = parseSRT(srtContent);
     setSubtitles(parsed);
     setModalVisible(false);
-
-    // Tự động xoay ngang màn hình
-    await ScreenOrientation.lockAsync(
-      ScreenOrientation.OrientationLock.LANDSCAPE
-    );
-    setIsHorizontal(true);
-  };
-
-  // Hàm toggle xoay màn hình thủ công nếu cần
-  const toggleOrientation = async () => {
-    if (isHorizontal) {
-      await ScreenOrientation.lockAsync(
-        ScreenOrientation.OrientationLock.PORTRAIT_UP
-      );
-    } else {
-      await ScreenOrientation.lockAsync(
-        ScreenOrientation.OrientationLock.LANDSCAPE
-      );
-    }
-    setIsHorizontal(!isHorizontal);
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar hidden={isHorizontal} />
+    <View
+      style={[
+        styles.container,
+        { paddingTop: insets.top, paddingBottom: insets.bottom },
+      ]}
+    >
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
 
       <View style={styles.videoContainer}>
         <WebView
@@ -112,81 +100,94 @@ export default function App() {
           userAgent={CUSTOM_USER_AGENT}
           injectedJavaScript={INJECTED_JAVASCRIPT}
           onMessage={handleWebViewMessage}
+          onNavigationStateChange={handleNavigationStateChange}
           allowsInlineMediaPlayback={true}
           mediaPlaybackRequiresUserAction={false}
           javaScriptEnabled={true}
           domStorageEnabled={true}
         />
 
-        {/* LỚP PHỦ PHỤ ĐỀ */}
+        {/* SUBTITLE OVERLAY */}
         {currentSubtitle ? (
           <View style={styles.subtitleOverlay} pointerEvents="none">
             <Text style={styles.subtitleText}>{currentSubtitle}</Text>
           </View>
         ) : null}
 
-        {/* NÚT ĐIỀU KHIỂN (Chỉ hiện khi không xoay ngang hoặc làm mờ) */}
-        <View style={styles.controlsOverlay} pointerEvents="box-none">
+        {/* FAB BUTTON */}
+        {isVideoPlaying && (
           <TouchableOpacity
-            style={styles.controlButton}
+            style={styles.fabButton}
             onPress={() => setModalVisible(true)}
+            activeOpacity={0.8}
           >
-            <Text style={styles.controlButtonText}>CC / SRT</Text>
+            <Text style={styles.fabIcon}>+</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.controlButton, { marginTop: 10 }]}
-            onPress={toggleOrientation}
-          >
-            <Text style={styles.controlButtonText}>🔄</Text>
-          </TouchableOpacity>
-        </View>
+        )}
       </View>
 
-      {/* MODAL NHẬP SRT */}
+      {/* BOTTOM SHEET MODAL */}
       <Modal
         animationType="slide"
         transparent={true}
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
+        statusBarTranslucent={true}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Nhập nội dung file SRT</Text>
-            <Text style={styles.modalSubtitle}>
-              Copy toàn bộ nội dung file .srt và dán vào đây:
-            </Text>
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setModalVisible(false)}
+          />
 
-            <TextInput
-              style={styles.input}
-              multiline
-              placeholder="1
-00:00:01,000 --> 00:00:04,000
-Hello world..."
-              placeholderTextColor="#888"
-              value={srtContent}
-              onChangeText={setSrtContent}
-            />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            style={styles.keyboardView}
+          >
+            <View
+              style={[
+                styles.bottomSheet,
+                { paddingBottom: Math.max(insets.bottom, 20) },
+              ]}
+            >
+              <View style={styles.sheetHeader}>
+                <View style={styles.dragHandle} />
+                <Text style={styles.sheetTitle}>Thêm Phụ Đề (SRT)</Text>
+              </View>
 
-            <View style={styles.modalButtons}>
+              <TextInput
+                style={styles.input}
+                multiline
+                placeholder="Dán nội dung file .srt vào đây..."
+                placeholderTextColor="#666"
+                value={srtContent}
+                onChangeText={setSrtContent}
+                autoCapitalize="none"
+                autoCorrect={false}
+                textAlignVertical="top"
+              />
+
               <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.buttonText}>Hủy</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.modalButton, styles.confirmButton]}
+                style={styles.actionButton}
                 onPress={handleLoadSubtitles}
+                activeOpacity={0.8}
               >
-                <Text style={styles.buttonText}>XEM NGAY</Text>
+                <Text style={styles.actionButtonText}>XÁC NHẬN</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
+  );
+};
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <MainApp />
+    </SafeAreaProvider>
   );
 }
 
@@ -198,109 +199,106 @@ const styles = StyleSheet.create({
   videoContainer: {
     flex: 1,
     position: "relative",
+    overflow: "hidden", // Giữ nội dung bên trong bo góc nếu cần
   },
   webview: {
     flex: 1,
     backgroundColor: "#000",
   },
-  // Style phụ đề chuẩn FFmpeg (Dễ đọc trên mọi nền)
   subtitleOverlay: {
     position: "absolute",
-    bottom: 40, // Cách đáy một chút
-    left: 20,
-    right: 20,
+    bottom: 80,
+    left: 16,
+    right: 16,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 10,
   },
   subtitleText: {
     color: "#FFFFFF",
-    fontSize: 20,
-    fontWeight: "bold",
-    textAlign: "center",
-    textShadowColor: "#000000",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-    // Tạo viền đen giả lập (Outline)
-    backgroundColor: "rgba(0,0,0,0.5)", // Nền đen mờ nhẹ để tăng độ tương phản
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  // Nút điều khiển nổi
-  controlsOverlay: {
-    position: "absolute",
-    top: 50,
-    right: 20,
-    zIndex: 20,
-    alignItems: "flex-end",
-  },
-  controlButton: {
-    backgroundColor: "rgba(255, 0, 0, 0.8)",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    minWidth: 40,
-    alignItems: "center",
-  },
-  controlButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 12,
-  },
-  // Modal Styles
-  modalContainer: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.8)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    width: "90%",
-    height: "80%",
-    backgroundColor: "#222",
-    borderRadius: 10,
-    padding: 20,
-  },
-  modalTitle: {
-    color: "#fff",
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 5,
+    textAlign: "center",
+    backgroundColor: "rgba(0,0,0,0.7)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
   },
-  modalSubtitle: {
-    color: "#aaa",
-    fontSize: 12,
+  fabButton: {
+    position: "absolute",
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#FF0000",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 20,
+    elevation: 0,
+  },
+  fabIcon: {
+    fontSize: 32,
+    color: "#FFFFFF",
+    fontWeight: "300",
+    marginTop: -2,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  keyboardView: {
+    width: "100%",
+  },
+  bottomSheet: {
+    backgroundColor: "#1E1E1E",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 20,
+    width: "100%",
+    height: SCREEN_HEIGHT * 0.5,
+  },
+  sheetHeader: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  dragHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: "#444",
+    borderRadius: 2,
     marginBottom: 15,
+  },
+  sheetTitle: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "bold",
+    textTransform: "uppercase",
   },
   input: {
     flex: 1,
-    backgroundColor: "#333",
-    color: "#fff",
-    borderRadius: 5,
-    padding: 10,
-    textAlignVertical: "top",
+    backgroundColor: "#2C2C2C",
+    borderRadius: 8,
+    padding: 16,
+    color: "#FFFFFF",
+    fontSize: 14,
+    marginBottom: 20,
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    marginTop: 15,
+  actionButton: {
+    backgroundColor: "#3EA6FF",
+    paddingVertical: 16,
+    borderRadius: 8,
+    alignItems: "center",
   },
-  modalButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 5,
-    marginLeft: 10,
-  },
-  cancelButton: {
-    backgroundColor: "#555",
-  },
-  confirmButton: {
-    backgroundColor: "#cc0000", // Youtube Red
-  },
-  buttonText: {
-    color: "#fff",
+  actionButtonText: {
+    color: "#000000",
+    fontSize: 14,
     fontWeight: "bold",
+    letterSpacing: 1,
   },
 });
