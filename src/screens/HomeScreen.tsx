@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { View, StyleSheet, Alert, StatusBar } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Appbar } from "react-native-paper";
 import * as ScreenOrientation from "expo-screen-orientation";
 import {
   WebView,
@@ -23,6 +24,8 @@ const HomeScreen = () => {
   const [currentSubtitle, setCurrentSubtitle] = useState("");
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [currentUrl, setCurrentUrl] = useState("");
+  const [canGoBack, setCanGoBack] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
@@ -73,6 +76,7 @@ const HomeScreen = () => {
   };
 
   const handleNavigationStateChange = (navState: WebViewNavigation) => {
+    setCanGoBack(navState.canGoBack);
     const isWatchPage =
       navState.url.includes("/watch") || navState.url.includes("/shorts/");
     setIsVideoPlaying(isWatchPage);
@@ -91,15 +95,23 @@ const HomeScreen = () => {
 
   // Handle Fullscreen
   const onFullScreenOpen = async () => {
+    setIsFullscreen(true);
     await ScreenOrientation.lockAsync(
       ScreenOrientation.OrientationLock.LANDSCAPE
     );
   };
 
   const onFullScreenClose = async () => {
+    setIsFullscreen(false);
     await ScreenOrientation.lockAsync(
       ScreenOrientation.OrientationLock.PORTRAIT_UP
     );
+  };
+
+  const handleGoBack = () => {
+    if (webViewRef.current && canGoBack) {
+      webViewRef.current.goBack();
+    }
   };
 
   const findSubtitle = (seconds: number) => {
@@ -148,13 +160,22 @@ const HomeScreen = () => {
   };
 
   return (
-    <View
-      style={[
-        styles.container,
-        { paddingTop: insets.top, paddingBottom: insets.bottom },
-      ]}
-    >
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.surface} />
+
+      {!isFullscreen && (
+        <Appbar.Header style={{ backgroundColor: COLORS.surface }} mode="small">
+          {canGoBack ? (
+            <Appbar.BackAction onPress={handleGoBack} color={COLORS.text} />
+          ) : (
+            <Appbar.Action icon="youtube" color={COLORS.primary} />
+          )}
+          <Appbar.Content
+            title="YoutubeSubSRT"
+            titleStyle={{ color: COLORS.text }}
+          />
+        </Appbar.Header>
+      )}
 
       <YouTubePlayer
         ref={webViewRef}
