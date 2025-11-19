@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { View, StyleSheet, Alert, StatusBar } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ScreenOrientation from "expo-screen-orientation";
@@ -9,6 +9,7 @@ import {
 } from "react-native-webview";
 
 import { parseSRT, fixSRT, SubtitleItem } from "@utils/srtParser";
+import { saveSRT, getSRT, removeSRT } from "@utils/storage";
 import YouTubePlayer from "@components/YouTubePlayer";
 import SubtitleInputModal from "@components/SubtitleInputModal";
 import FloatingButton from "@components/FloatingButton";
@@ -21,9 +22,32 @@ const HomeScreen = () => {
   const [subtitles, setSubtitles] = useState<SubtitleItem[]>([]);
   const [currentSubtitle, setCurrentSubtitle] = useState("");
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [currentUrl, setCurrentUrl] = useState("");
 
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    const loadSavedSRT = async () => {
+      if (!currentUrl) return;
+
+      // Reset subtitles when URL changes
+      setSrtContent("");
+      setSubtitles([]);
+      setCurrentSubtitle("");
+
+      const savedSRT = await getSRT(currentUrl);
+      if (savedSRT) {
+        setSrtContent(savedSRT);
+        // Auto parse saved SRT
+        const { fixedData } = fixSRT(savedSRT);
+        const parsed = parseSRT(fixedData);
+        setSubtitles(parsed);
+      }
+    };
+
+    loadSavedSRT();
+  }, [currentUrl]);
 
   const handleWebViewMessage = (event: WebViewMessageEvent) => {
     try {
@@ -42,6 +66,13 @@ const HomeScreen = () => {
     const isWatchPage =
       navState.url.includes("/watch") || navState.url.includes("/shorts/");
     setIsVideoPlaying(isWatchPage);
+
+    // Only update URL if it's a video page and different from current
+    if (isWatchPage && navState.url !== currentUrl) {
+      // Simple check to avoid reloading on small param changes if needed,
+      // but for now strictly following URL is safer for "per video" logic
+      setCurrentUrl(navState.url);
+    }
   };
 
   // Handle Fullscreen
@@ -76,7 +107,7 @@ const HomeScreen = () => {
     }
   };
 
-  const handleLoadSubtitles = () => {
+  const handleLoadSubtitles = async () => {
     // 1. Auto-fix format and get stats
     const { fixedData, fixCount } = fixSRT(srtContent);
 
@@ -91,6 +122,15 @@ const HomeScreen = () => {
     const parsed = parseSRT(fixedData);
     setSubtitles(parsed);
     setModalVisible(false);
+
+    // 3. Save or remove from storage
+    if (currentUrl) {
+      if (fixedData) {
+        await saveSRT(currentUrl, fixedData);
+      } else {
+        await removeSRT(currentUrl);
+      }
+    }
   };
 
   return (
@@ -111,6 +151,7 @@ const HomeScreen = () => {
       <FloatingButton
         visible={isVideoPlaying}
         onPress={() => setModalVisible(true)}
+        hasSubtitles={subtitles.length > 0}
       />
 
       <SubtitleInputModal
