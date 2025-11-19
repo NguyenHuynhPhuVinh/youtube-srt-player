@@ -7,9 +7,18 @@ import {
   Platform,
   Dimensions,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { TextInput, Button, Text, useTheme } from "react-native-paper";
+import {
+  TextInput,
+  Button,
+  Text,
+  useTheme,
+  IconButton,
+} from "react-native-paper";
+import * as DocumentPicker from "expo-document-picker";
+import { readAsStringAsync } from "expo-file-system/legacy";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -30,6 +39,37 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+
+  const handlePickFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "*/*", // Allow all types, but we're looking for text/srt
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) return;
+
+      const asset = result.assets[0];
+      if (asset) {
+        // Check extension if needed, but for now just try to read it
+        if (
+          !asset.name.toLowerCase().endsWith(".srt") &&
+          !asset.name.toLowerCase().endsWith(".txt")
+        ) {
+          Alert.alert(
+            "Lưu ý",
+            "File này có thể không phải là file phụ đề .srt hợp lệ."
+          );
+        }
+
+        const content = await readAsStringAsync(asset.uri);
+        setSrtContent(content);
+      }
+    } catch (error) {
+      console.error("Error reading file:", error);
+      Alert.alert("Lỗi", "Không thể đọc file này.");
+    }
+  };
 
   return (
     <Modal
@@ -74,10 +114,21 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
               </Text>
             </View>
 
+            <View style={styles.buttonRow}>
+              <Button
+                mode="outlined"
+                icon="file-upload"
+                onPress={handlePickFile}
+                style={styles.fileButton}
+              >
+                Chọn file .srt
+              </Button>
+            </View>
+
             <TextInput
               mode="outlined"
               label="Nội dung SRT"
-              placeholder="Dán nội dung file .srt vào đây..."
+              placeholder="Dán nội dung hoặc chọn file..."
               multiline
               value={srtContent}
               onChangeText={setSrtContent}
@@ -87,6 +138,14 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
               }}
               autoCapitalize="none"
               autoCorrect={false}
+              right={
+                srtContent.length > 0 ? (
+                  <TextInput.Icon
+                    icon="close"
+                    onPress={() => setSrtContent("")}
+                  />
+                ) : null
+              }
             />
 
             <Button
@@ -121,11 +180,11 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     padding: 24,
     width: "100%",
-    height: SCREEN_HEIGHT * 0.6,
+    height: SCREEN_HEIGHT * 0.7, // Increased height slightly
   },
   sheetHeader: {
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 16,
   },
   dragHandle: {
     width: 32,
@@ -133,6 +192,13 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     marginBottom: 16,
     opacity: 0.4,
+  },
+  buttonRow: {
+    flexDirection: "row",
+    marginBottom: 16,
+  },
+  fileButton: {
+    flex: 1,
   },
   input: {
     flex: 1,
