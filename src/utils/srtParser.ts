@@ -1,9 +1,16 @@
+export interface SubtitleItem {
+  id: string;
+  startTime: number;
+  endTime: number;
+  text: string;
+}
+
 /**
  * Parses SRT string into an array of subtitle objects.
  * @param {string} data - The raw SRT string.
  * @returns {Array} - Array of { id, startTime, endTime, text }
  */
-export const parseSRT = (data) => {
+export const parseSRT = (data: string): SubtitleItem[] => {
   if (!data) return [];
 
   // 1. Auto-fix format before parsing
@@ -15,7 +22,7 @@ export const parseSRT = (data) => {
 
   const regex =
     /(\d+)\n(\d{2}:\d{2}:\d{2},\d{3}) --> (\d{2}:\d{2}:\d{2},\d{3})\n([\s\S]*?)(?=\n\n|\n*$)/g;
-  const items = [];
+  const items: SubtitleItem[] = [];
   let match;
 
   while ((match = regex.exec(data)) !== null) {
@@ -33,11 +40,13 @@ export const parseSRT = (data) => {
 /**
  * Fixes common SRT time format errors.
  */
-export const fixSRT = (data) => {
+export const fixSRT = (
+  data: string
+): { fixedData: string; fixCount: number } => {
   if (!data) return { fixedData: "", fixCount: 0 };
 
   const lines = data.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
-  const fixedLines = [];
+  const fixedLines: string[] = [];
   let fixCount = 0;
 
   const timePattern = /^(.+?)\s*-->\s*(.+?)$/;
@@ -65,19 +74,21 @@ export const fixSRT = (data) => {
   return { fixedData: fixedLines.join("\n"), fixCount };
 };
 
-const fixTimeFormat = (timeStr) => {
+const fixTimeFormat = (timeStr: string): string => {
   timeStr = timeStr.trim();
 
   const patterns = [
     // 1. MM:SS,mmm -> 00:MM:SS,mmm
     {
       regex: /^(\d{1,2}):(\d{2}),(\d{3})$/,
-      replace: (_, m1, m2, m3) => `00:${m1.padStart(2, "0")}:${m2},${m3}`,
+      replace: (_: string, m1: string, m2: string, m3: string) =>
+        `00:${m1.padStart(2, "0")}:${m2},${m3}`,
     },
     // 2. H:MM:mmm -> 0H:MM,mmm
     {
       regex: /^(\d):(\d{2}):(\d{3})$/,
-      replace: (_, m1, m2, m3) => `00:0${m1}:${m2},${m3}`,
+      replace: (_: string, m1: string, m2: string, m3: string) =>
+        `00:0${m1}:${m2},${m3}`,
     },
     // 3. HH:MM:mmm -> 00:HH:MM,mmm (Wait, logic in python was 00:HH:MM,mmm for HH:MM:mmm input?)
     // Python Pattern 3: r'^(\d{2}):(\d{2}):(\d{3})$' -> f'00:{m.group(1)}:{m.group(2)},{m.group(3)}'
@@ -86,43 +97,49 @@ const fixTimeFormat = (timeStr) => {
     // Let's stick to Python logic: Input 2 parts separated by colon + 3 digits.
     {
       regex: /^(\d{2}):(\d{2}):(\d{3})$/,
-      replace: (_, m1, m2, m3) => `00:${m1}:${m2},${m3}`,
+      replace: (_: string, m1: string, m2: string, m3: string) =>
+        `00:${m1}:${m2},${m3}`,
     },
 
     // 4. H:MM,mmm -> 00:0H:MM,mmm
     {
       regex: /^(\d):(\d{2}),(\d{3})$/,
-      replace: (_, m1, m2, m3) => `00:0${m1}:${m2},${m3}`,
+      replace: (_: string, m1: string, m2: string, m3: string) =>
+        `00:0${m1}:${m2},${m3}`,
     },
 
     // 5. 00:0MM,mmm -> 00:MM,mmm
     {
       regex: /^(\d{2}):0(\d{1}),(\d{3})$/,
-      replace: (_, m1, m2, m3) => `${m1}:0${m2},${m3}`,
+      replace: (_: string, m1: string, m2: string, m3: string) =>
+        `${m1}:0${m2},${m3}`,
     },
 
     // 6. 00:0MM:mmm -> 00:MM,mmm
     {
       regex: /^(\d{2}):0(\d{1}):(\d{3})$/,
-      replace: (_, m1, m2, m3) => `${m1}:0${m2},${m3}`,
+      replace: (_: string, m1: string, m2: string, m3: string) =>
+        `${m1}:0${m2},${m3}`,
     },
 
     // 7. 00:MMM,mmm -> 00:0M:MM,mmm
     {
       regex: /^(\d{2}):(\d{3}),(\d{3})$/,
-      replace: (_, m1, m2, m3) => `${m1}:0${m2[0]}:${m2.slice(1)},${m3}`,
+      replace: (_: string, m1: string, m2: string, m3: string) =>
+        `${m1}:0${m2[0]}:${m2.slice(1)},${m3}`,
     },
 
     // 8. 00:MMM:mmm -> 00:0M:MM,mmm
     {
       regex: /^(\d{2}):(\d{3}):(\d{3})$/,
-      replace: (_, m1, m2, m3) => `${m1}:0${m2[0]}:${m2.slice(1)},${m3}`,
+      replace: (_: string, m1: string, m2: string, m3: string) =>
+        `${m1}:0${m2[0]}:${m2.slice(1)},${m3}`,
     },
   ];
 
   for (let { regex, replace } of patterns) {
     if (regex.test(timeStr)) {
-      const fixed = timeStr.replace(regex, replace);
+      const fixed = timeStr.replace(regex, replace as any);
       if (validateTimeFormat(fixed)) return fixed;
     }
   }
@@ -131,13 +148,13 @@ const fixTimeFormat = (timeStr) => {
   return timeStr;
 };
 
-const validateTimeFormat = (timeStr) => {
+const validateTimeFormat = (timeStr: string): boolean => {
   // HH:MM:SS,mmm
   const regex = /^(\d{2}):(\d{2}):(\d{2}),(\d{3})$/;
   const match = timeStr.match(regex);
   if (!match) return false;
 
-  const [_, h, m, s, ms] = match.map(Number); // match[0] is full string
+  // match[0] is full string
   // Actually map(Number) on match array works but index 0 is string.
   // Let's parse manually to be safe
   const hNum = parseInt(match[1], 10);
@@ -151,7 +168,7 @@ const validateTimeFormat = (timeStr) => {
 /**
  * Converts SRT timestamp (00:00:00,000) to seconds.
  */
-const timeToSeconds = (timeString) => {
+const timeToSeconds = (timeString: string): number => {
   const parts = timeString.split(":");
   const secondsParts = parts[2].split(",");
 

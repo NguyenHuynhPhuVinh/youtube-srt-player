@@ -1,15 +1,21 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { WebView } from "react-native-webview";
+import {
+  WebView,
+  WebViewMessageEvent,
+  WebViewNavigation,
+} from "react-native-webview";
 import { CUSTOM_USER_AGENT, INJECTED_JAVASCRIPT } from "@constants/scripts";
 
 import { COLORS } from "@constants/colors";
 
-const YouTubePlayer = React.forwardRef(
-  (
-    { onMessage, onNavigationStateChange, onFullScreenOpen, onFullScreenClose },
-    ref
-  ) => {
+interface YouTubePlayerProps {
+  onMessage: (event: WebViewMessageEvent) => void;
+  onNavigationStateChange: (navState: WebViewNavigation) => void;
+}
+
+const YouTubePlayer = React.forwardRef<WebView, YouTubePlayerProps>(
+  ({ onMessage, onNavigationStateChange }, ref) => {
     return (
       <View style={styles.videoContainer}>
         <WebView
@@ -22,8 +28,6 @@ const YouTubePlayer = React.forwardRef(
           onNavigationStateChange={onNavigationStateChange}
           // Fullscreen & Rotation Config
           allowsFullscreenVideo={true}
-          onFullScreenOpen={onFullScreenOpen}
-          onFullScreenClose={onFullScreenClose}
           allowsInlineMediaPlayback={true}
           mediaPlaybackRequiresUserAction={false}
           javaScriptEnabled={true}

@@ -16,7 +16,15 @@ const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 import { COLORS } from "@constants/colors";
 
-const SubtitleInputModal = ({
+interface SubtitleInputModalProps {
+  visible: boolean;
+  onClose: () => void;
+  srtContent: string;
+  setSrtContent: (text: string) => void;
+  onLoadSubtitles: () => void;
+}
+
+const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   visible,
   onClose,
   srtContent,

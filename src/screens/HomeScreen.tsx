@@ -2,8 +2,13 @@ import React, { useState, useRef } from "react";
 import { View, StyleSheet, Alert, StatusBar } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ScreenOrientation from "expo-screen-orientation";
+import {
+  WebView,
+  WebViewMessageEvent,
+  WebViewNavigation,
+} from "react-native-webview";
 
-import { parseSRT, fixSRT } from "@utils/srtParser";
+import { parseSRT, fixSRT, SubtitleItem } from "@utils/srtParser";
 import YouTubePlayer from "@components/YouTubePlayer";
 import SubtitleInputModal from "@components/SubtitleInputModal";
 import FloatingButton from "@components/FloatingButton";
@@ -13,14 +18,14 @@ import { COLORS } from "@constants/colors";
 const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [srtContent, setSrtContent] = useState("");
-  const [subtitles, setSubtitles] = useState([]);
+  const [subtitles, setSubtitles] = useState<SubtitleItem[]>([]);
   const [currentSubtitle, setCurrentSubtitle] = useState("");
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
-  const webViewRef = useRef(null);
+  const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
 
-  const handleWebViewMessage = (event) => {
+  const handleWebViewMessage = (event: WebViewMessageEvent) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === "currentTime") {
@@ -33,7 +38,7 @@ const HomeScreen = () => {
     } catch (e) {}
   };
 
-  const handleNavigationStateChange = (navState) => {
+  const handleNavigationStateChange = (navState: WebViewNavigation) => {
     const isWatchPage =
       navState.url.includes("/watch") || navState.url.includes("/shorts/");
     setIsVideoPlaying(isWatchPage);
@@ -52,7 +57,7 @@ const HomeScreen = () => {
     );
   };
 
-  const findSubtitle = (seconds) => {
+  const findSubtitle = (seconds: number) => {
     const sub = subtitles.find(
       (s) => seconds >= s.startTime && seconds <= s.endTime
     );
@@ -101,8 +106,6 @@ const HomeScreen = () => {
         ref={webViewRef}
         onMessage={handleWebViewMessage}
         onNavigationStateChange={handleNavigationStateChange}
-        onFullScreenOpen={onFullScreenOpen}
-        onFullScreenClose={onFullScreenClose}
       />
 
       <FloatingButton

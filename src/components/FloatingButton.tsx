@@ -3,7 +3,15 @@ import { TouchableOpacity, Text, StyleSheet } from "react-native";
 
 import { COLORS } from "@constants/colors";
 
-const FloatingButton = ({ onPress, visible }) => {
+interface FloatingButtonProps {
+  onPress: () => void;
+  visible: boolean;
+}
+
+const FloatingButton: React.FC<FloatingButtonProps> = ({
+  onPress,
+  visible,
+}) => {
   if (!visible) return null;
 
   return (

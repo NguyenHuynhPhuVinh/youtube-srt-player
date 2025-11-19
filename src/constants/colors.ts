@@ -9,4 +9,4 @@ export const COLORS = {
   border: "#444444",
   overlay: "rgba(0,0,0,0.5)",
   transparent: "transparent",
-};
+} as const;
