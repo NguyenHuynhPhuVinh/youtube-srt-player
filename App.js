@@ -25,6 +25,17 @@ const CUSTOM_USER_AGENT =
 
 const INJECTED_JAVASCRIPT = `
   (function() {
+    // 1. Setup Subtitle Layer
+    let subtitleLayer = document.getElementById('custom-subtitle-layer');
+    if (!subtitleLayer) {
+      subtitleLayer = document.createElement('div');
+      subtitleLayer.id = 'custom-subtitle-layer';
+      // Style: Center bottom, white text, black outline (shadow), high z-index
+      subtitleLayer.style.cssText = 'position: absolute; bottom: 40px; left: 10px; right: 10px; text-align: center; color: white; font-size: 20px; font-weight: bold; text-shadow: 1.5px 1.5px 1px black, -1.5px -1.5px 1px black, 1.5px -1.5px 1px black, -1.5px 1.5px 1px black; pointer-events: none; z-index: 2147483647; display: none;';
+      document.body.appendChild(subtitleLayer);
+    }
+
+    // 2. Time Polling
     let lastTime = -1;
     setInterval(() => {
       const video = document.querySelector('video');
@@ -39,6 +50,49 @@ const INJECTED_JAVASCRIPT = `
         }
       }
     }, 100);
+
+    // 3. Listen for Subtitles from RN
+    function handleMessage(event) {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'setSubtitle') {
+          const text = data.payload;
+          if (text) {
+            subtitleLayer.innerText = text;
+            subtitleLayer.style.display = 'block';
+          } else {
+            subtitleLayer.style.display = 'none';
+          }
+        }
+      } catch (e) {}
+    }
+
+    document.addEventListener('message', handleMessage);
+    window.addEventListener('message', handleMessage);
+
+    // 4. Handle Fullscreen
+    // Move subtitle layer to the fullscreen element so it stays visible
+    function handleFullscreenChange() {
+      const fsElement = document.fullscreenElement || document.webkitFullscreenElement;
+      if (fsElement) {
+        fsElement.appendChild(subtitleLayer);
+      } else {
+        document.body.appendChild(subtitleLayer);
+      }
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
+    // Periodic check to ensure subtitle layer is attached to the correct parent
+    setInterval(() => {
+       const fsElement = document.fullscreenElement || document.webkitFullscreenElement;
+       const targetParent = fsElement || document.body;
+       if (subtitleLayer.parentElement !== targetParent) {
+         targetParent.appendChild(subtitleLayer);
+       }
+    }, 1000);
+
   })();
   true;
 `;
@@ -87,7 +141,19 @@ const MainApp = () => {
     const sub = subtitles.find(
       (s) => seconds >= s.startTime && seconds <= s.endTime
     );
-    setCurrentSubtitle(sub ? sub.text : "");
+    const text = sub ? sub.text : "";
+
+    if (text !== currentSubtitle) {
+      setCurrentSubtitle(text);
+      if (webViewRef.current) {
+        webViewRef.current.postMessage(
+          JSON.stringify({
+            type: "setSubtitle",
+            payload: text,
+          })
+        );
+      }
+    }
   };
 
   const handleLoadSubtitles = () => {
@@ -125,11 +191,7 @@ const MainApp = () => {
         />
 
         {/* SUBTITLE OVERLAY - FFmpeg Style */}
-        {currentSubtitle ? (
-          <View style={styles.subtitleOverlay} pointerEvents="none">
-            <Text style={styles.subtitleText}>{currentSubtitle}</Text>
-          </View>
-        ) : null}
+        {/* SUBTITLE OVERLAY - REMOVED (Now handled inside WebView) */}
 
         {/* FAB BUTTON */}
         {isVideoPlaying && (
