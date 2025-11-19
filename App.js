@@ -10,9 +10,10 @@ import {
   Platform,
   KeyboardAvoidingView,
   Dimensions,
+  Alert,
 } from "react-native";
 import { WebView } from "react-native-webview";
-import { parseSRT } from "./src/utils/srtParser";
+import { parseSRT, fixSRT } from "./src/utils/srtParser";
 import {
   SafeAreaProvider,
   SafeAreaView,
@@ -160,7 +161,18 @@ const MainApp = () => {
   };
 
   const handleLoadSubtitles = () => {
-    const parsed = parseSRT(srtContent);
+    // 1. Auto-fix format and get stats
+    const { fixedData, fixCount } = fixSRT(srtContent);
+
+    if (fixCount > 0) {
+      Alert.alert(
+        "Đã sửa lỗi SRT",
+        `Đã tự động khắc phục ${fixCount} lỗi định dạng thời gian để hiển thị đúng.`
+      );
+    }
+
+    // 2. Parse the fixed content
+    const parsed = parseSRT(fixedData);
     setSubtitles(parsed);
     setModalVisible(false);
   };

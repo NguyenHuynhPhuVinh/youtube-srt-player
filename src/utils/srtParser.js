@@ -6,6 +6,10 @@
 export const parseSRT = (data) => {
   if (!data) return [];
 
+  // 1. Auto-fix format before parsing
+  const { fixedData } = fixSRT(data);
+  data = fixedData;
+
   // Chuẩn hóa dòng mới
   data = data.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
@@ -24,6 +28,124 @@ export const parseSRT = (data) => {
   }
 
   return items;
+};
+
+/**
+ * Fixes common SRT time format errors.
+ */
+export const fixSRT = (data) => {
+  if (!data) return { fixedData: "", fixCount: 0 };
+
+  const lines = data.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  const fixedLines = [];
+  let fixCount = 0;
+
+  const timePattern = /^(.+?)\s*-->\s*(.+?)$/;
+
+  for (let line of lines) {
+    const match = line.match(timePattern);
+    if (match) {
+      const start = match[1].trim();
+      const end = match[2].trim();
+
+      const fixedStart = fixTimeFormat(start);
+      const fixedEnd = fixTimeFormat(end);
+
+      if (fixedStart !== start || fixedEnd !== end) {
+        fixCount++;
+        fixedLines.push(`${fixedStart} --> ${fixedEnd}`);
+      } else {
+        fixedLines.push(line);
+      }
+    } else {
+      fixedLines.push(line);
+    }
+  }
+
+  return { fixedData: fixedLines.join("\n"), fixCount };
+};
+
+const fixTimeFormat = (timeStr) => {
+  timeStr = timeStr.trim();
+
+  const patterns = [
+    // 1. MM:SS,mmm -> 00:MM:SS,mmm
+    {
+      regex: /^(\d{1,2}):(\d{2}),(\d{3})$/,
+      replace: (_, m1, m2, m3) => `00:${m1.padStart(2, "0")}:${m2},${m3}`,
+    },
+    // 2. H:MM:mmm -> 0H:MM,mmm
+    {
+      regex: /^(\d):(\d{2}):(\d{3})$/,
+      replace: (_, m1, m2, m3) => `00:0${m1}:${m2},${m3}`,
+    },
+    // 3. HH:MM:mmm -> 00:HH:MM,mmm (Wait, logic in python was 00:HH:MM,mmm for HH:MM:mmm input?)
+    // Python Pattern 3: r'^(\d{2}):(\d{2}):(\d{3})$' -> f'00:{m.group(1)}:{m.group(2)},{m.group(3)}'
+    // This interprets input HH:MM:mmm as MM:SS:mmm? No, Python code says "HH:MM:mmm".
+    // If input is 12:34:567. Output 00:12:34,567. So it treats input HH as MM?
+    // Let's stick to Python logic: Input 2 parts separated by colon + 3 digits.
+    {
+      regex: /^(\d{2}):(\d{2}):(\d{3})$/,
+      replace: (_, m1, m2, m3) => `00:${m1}:${m2},${m3}`,
+    },
+
+    // 4. H:MM,mmm -> 00:0H:MM,mmm
+    {
+      regex: /^(\d):(\d{2}),(\d{3})$/,
+      replace: (_, m1, m2, m3) => `00:0${m1}:${m2},${m3}`,
+    },
+
+    // 5. 00:0MM,mmm -> 00:MM,mmm
+    {
+      regex: /^(\d{2}):0(\d{1}),(\d{3})$/,
+      replace: (_, m1, m2, m3) => `${m1}:0${m2},${m3}`,
+    },
+
+    // 6. 00:0MM:mmm -> 00:MM,mmm
+    {
+      regex: /^(\d{2}):0(\d{1}):(\d{3})$/,
+      replace: (_, m1, m2, m3) => `${m1}:0${m2},${m3}`,
+    },
+
+    // 7. 00:MMM,mmm -> 00:0M:MM,mmm
+    {
+      regex: /^(\d{2}):(\d{3}),(\d{3})$/,
+      replace: (_, m1, m2, m3) => `${m1}:0${m2[0]}:${m2.slice(1)},${m3}`,
+    },
+
+    // 8. 00:MMM:mmm -> 00:0M:MM,mmm
+    {
+      regex: /^(\d{2}):(\d{3}):(\d{3})$/,
+      replace: (_, m1, m2, m3) => `${m1}:0${m2[0]}:${m2.slice(1)},${m3}`,
+    },
+  ];
+
+  for (let { regex, replace } of patterns) {
+    if (regex.test(timeStr)) {
+      const fixed = timeStr.replace(regex, replace);
+      if (validateTimeFormat(fixed)) return fixed;
+    }
+  }
+
+  if (validateTimeFormat(timeStr)) return timeStr;
+  return timeStr;
+};
+
+const validateTimeFormat = (timeStr) => {
+  // HH:MM:SS,mmm
+  const regex = /^(\d{2}):(\d{2}):(\d{2}),(\d{3})$/;
+  const match = timeStr.match(regex);
+  if (!match) return false;
+
+  const [_, h, m, s, ms] = match.map(Number); // match[0] is full string
+  // Actually map(Number) on match array works but index 0 is string.
+  // Let's parse manually to be safe
+  const hNum = parseInt(match[1], 10);
+  const mNum = parseInt(match[2], 10);
+  const sNum = parseInt(match[3], 10);
+  const msNum = parseInt(match[4], 10);
+
+  return hNum <= 99 && mNum <= 59 && sNum <= 59 && msNum <= 999;
 };
 
 /**
