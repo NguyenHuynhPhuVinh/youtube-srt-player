@@ -30,8 +30,11 @@ const INJECTED_JAVASCRIPT = `
     if (!subtitleLayer) {
       subtitleLayer = document.createElement('div');
       subtitleLayer.id = 'custom-subtitle-layer';
-      // Style: Center bottom, white text, black outline (shadow), high z-index
-      subtitleLayer.style.cssText = 'position: absolute; bottom: 40px; left: 10px; right: 10px; text-align: center; color: white; font-size: 20px; font-weight: bold; text-shadow: 1.5px 1.5px 1px black, -1.5px -1.5px 1px black, 1.5px -1.5px 1px black, -1.5px 1.5px 1px black; pointer-events: none; z-index: 2147483647; display: none;';
+      // Style: Match Flutter Reference (Layered Outline)
+      // - Bottom: ~5-10px
+      // - Font: 16px, w600
+      // - Stroke: 3px black (using paint-order to keep text readable)
+      subtitleLayer.style.cssText = 'position: absolute; bottom: 6px; left: 20px; right: 20px; text-align: center; color: white; font-size: 16px; font-weight: 600; font-family: sans-serif; -webkit-text-stroke: 3px black; paint-order: stroke fill; pointer-events: none; z-index: 2147483647; display: none; line-height: 1.3; letter-spacing: 0.5px;';
       document.body.appendChild(subtitleLayer);
     }
 
