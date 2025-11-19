@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -18,6 +18,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import * as ScreenOrientation from "expo-screen-orientation";
 
 const CUSTOM_USER_AGENT =
   "Mozilla/5.0 (Linux; Android 13; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36";
@@ -44,7 +45,6 @@ const INJECTED_JAVASCRIPT = `
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
-// Tách component chính ra để dùng hook useSafeAreaInsets
 const MainApp = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [srtContent, setSrtContent] = useState("");
@@ -53,7 +53,7 @@ const MainApp = () => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
   const webViewRef = useRef(null);
-  const insets = useSafeAreaInsets(); // Lấy thông số tai thỏ/thanh điều hướng
+  const insets = useSafeAreaInsets();
 
   const handleWebViewMessage = (event) => {
     try {
@@ -68,6 +68,19 @@ const MainApp = () => {
     const isWatchPage =
       navState.url.includes("/watch") || navState.url.includes("/shorts/");
     setIsVideoPlaying(isWatchPage);
+  };
+
+  // Xử lý khi bấm nút Fullscreen trên Player
+  const onFullScreenOpen = async () => {
+    await ScreenOrientation.lockAsync(
+      ScreenOrientation.OrientationLock.LANDSCAPE
+    );
+  };
+
+  const onFullScreenClose = async () => {
+    await ScreenOrientation.lockAsync(
+      ScreenOrientation.OrientationLock.PORTRAIT_UP
+    );
   };
 
   const findSubtitle = (seconds) => {
@@ -101,13 +114,17 @@ const MainApp = () => {
           injectedJavaScript={INJECTED_JAVASCRIPT}
           onMessage={handleWebViewMessage}
           onNavigationStateChange={handleNavigationStateChange}
+          // Cấu hình Fullscreen & Xoay màn hình
+          allowsFullscreenVideo={true}
+          onFullScreenOpen={onFullScreenOpen}
+          onFullScreenClose={onFullScreenClose}
           allowsInlineMediaPlayback={true}
           mediaPlaybackRequiresUserAction={false}
           javaScriptEnabled={true}
           domStorageEnabled={true}
         />
 
-        {/* SUBTITLE OVERLAY */}
+        {/* SUBTITLE OVERLAY - FFmpeg Style */}
         {currentSubtitle ? (
           <View style={styles.subtitleOverlay} pointerEvents="none">
             <Text style={styles.subtitleText}>{currentSubtitle}</Text>
@@ -199,30 +216,36 @@ const styles = StyleSheet.create({
   videoContainer: {
     flex: 1,
     position: "relative",
-    overflow: "hidden", // Giữ nội dung bên trong bo góc nếu cần
+    overflow: "hidden",
   },
   webview: {
     flex: 1,
     backgroundColor: "#000",
   },
+  // FFmpeg Subtitle Style: Chữ trắng, viền đen, không nền
   subtitleOverlay: {
     position: "absolute",
-    bottom: 80,
-    left: 16,
-    right: 16,
+    bottom: 40, // Đẩy xuống thấp hơn chút cho giống phim
+    left: 10,
+    right: 10,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 10,
   },
   subtitleText: {
     color: "#FFFFFF",
-    fontSize: 18,
+    fontSize: 20, // Chữ to rõ
     fontWeight: "bold",
     textAlign: "center",
-    backgroundColor: "rgba(0,0,0,0.7)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 4,
+    backgroundColor: "transparent", // Bỏ nền
+
+    // Giả lập viền đen (Stroke) bằng Shadow cứng
+    textShadowColor: "#000000",
+    textShadowOffset: { width: 1.5, height: 1.5 },
+    textShadowRadius: 1,
+
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   fabButton: {
     position: "absolute",
