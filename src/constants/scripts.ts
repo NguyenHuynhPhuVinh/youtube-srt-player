@@ -49,7 +49,7 @@ export const INJECTED_JAVASCRIPT = `
       const textStroke = '-webkit-text-stroke:0.8px #000;paint-order:stroke fill;';
       const textShadow = 'text-shadow:0 0 2px #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 -1px 0 #000,0 1px 0 #000,-1px 0 0 #000,1px 0 0 #000;';
       // Added transform:translateZ(0) for GPU layer promotion
-      subtitleLayer.style.cssText = 'position:absolute;bottom:8px;left:5%;right:5%;max-width:90%;margin:0 auto;text-align:center;color:#FFF;font-size:' + subtitleFontSize + 'px;font-weight:' + weight + ';font-style:' + subtitleFontStyle + ';font-family:system-ui,sans-serif;' + textStroke + textShadow + 'pointer-events:none;z-index:2147483647;display:' + (lastSubtitle ? 'block' : 'none') + ';line-height:1.5;transform:translateZ(0);backface-visibility:hidden;contain:layout style paint';
+      subtitleLayer.style.cssText = 'position:absolute;bottom:8px;left:5%;right:5%;max-width:90%;margin:0 auto;text-align:center;color:#FFF;font-size:' + subtitleFontSize + 'px;font-weight:' + weight + ';font-style:' + subtitleFontStyle + ';font-family:system-ui,sans-serif;' + textStroke + textShadow + 'pointer-events:none;z-index:2147483647;display:' + (lastSubtitle ? 'block' : 'none') + ';line-height:1.5;white-space:pre-line;transform:translateZ(0);backface-visibility:hidden;contain:layout style paint';
     }
 
     // 2. Optimized video element finder with caching
@@ -95,8 +95,7 @@ export const INJECTED_JAVASCRIPT = `
           lastSubtitle = d.payload;
           const layer = initSubtitleLayer();
           if (d.payload) {
-            // Convert newlines to <br> for proper line breaks in SRT subtitles
-            layer.innerHTML = d.payload.replace(/\\n/g, '<br>').replace(/\n/g, '<br>');
+            layer.textContent = d.payload;
             layer.style.display = 'block';
           } else {
             layer.style.display = 'none';
