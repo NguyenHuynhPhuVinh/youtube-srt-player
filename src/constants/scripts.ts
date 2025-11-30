@@ -33,7 +33,10 @@ export const INJECTED_JAVASCRIPT = `
     function updateSubtitleStyle() {
       if (!subtitleLayer) return;
       const weight = subtitleFontWeight === 'bold' ? '600' : '400';
-      subtitleLayer.style.cssText = 'position:absolute;bottom:8px;left:16px;right:16px;text-align:center;color:#FFF;font-size:' + subtitleFontSize + 'px;font-weight:' + weight + ';font-style:' + subtitleFontStyle + ';font-family:system-ui,sans-serif;text-shadow:0 1px 3px rgba(0,0,0,.9),-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;pointer-events:none;z-index:2147483647;display:' + (lastSubtitle ? 'block' : 'none') + ';line-height:1.5;will-change:contents;contain:content';
+      // Viền đen vừa phải - stroke mỏng + shadow 8 hướng
+      const textStroke = '-webkit-text-stroke:0.8px #000;paint-order:stroke fill;';
+      const textShadow = 'text-shadow:0 0 2px #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 -1px 0 #000,0 1px 0 #000,-1px 0 0 #000,1px 0 0 #000;';
+      subtitleLayer.style.cssText = 'position:absolute;bottom:8px;left:16px;right:16px;text-align:center;color:#FFF;font-size:' + subtitleFontSize + 'px;font-weight:' + weight + ';font-style:' + subtitleFontStyle + ';font-family:system-ui,sans-serif;' + textStroke + textShadow + 'pointer-events:none;z-index:2147483647;display:' + (lastSubtitle ? 'block' : 'none') + ';line-height:1.5;will-change:contents;contain:content';
     }
 
     // 2. Optimized video element finder with caching
