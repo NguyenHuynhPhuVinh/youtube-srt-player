@@ -1,7 +1,15 @@
 import React, { useState, useRef, useEffect } from "react";
-import { View, StyleSheet, Alert, StatusBar } from "react-native";
+import {
+  View,
+  StyleSheet,
+  Alert,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Appbar } from "react-native-paper";
+import { LinearGradient } from "expo-linear-gradient";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ScreenOrientation from "expo-screen-orientation";
 import {
   WebView,
@@ -221,30 +229,37 @@ const HomeScreen = () => {
       <StatusBar barStyle="light-content" backgroundColor={COLORS.surface} />
 
       {!isFullscreen && (
-        <Appbar.Header
-          style={{
-            backgroundColor: COLORS.surface,
-            elevation: 0,
-            borderBottomWidth: 1,
-            borderBottomColor: COLORS.border,
-          }}
-          mode="small"
+        <LinearGradient
+          colors={["#1a1a2e", "#16213e"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={[styles.headerGradient, { paddingTop: insets.top }]}
         >
-          {canGoBack ? (
-            <Appbar.BackAction onPress={handleGoBack} color={COLORS.textSecondary} />
-          ) : (
-            <Appbar.Action icon="youtube" color={COLORS.primary} />
-          )}
-          <Appbar.Content
-            title="SubSRT"
-            titleStyle={{
-              color: COLORS.text,
-              fontWeight: "600",
-              fontSize: 18,
-              letterSpacing: 0.5,
-            }}
-          />
-        </Appbar.Header>
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={[styles.headerBtn, !canGoBack && styles.headerBtnDisabled]}
+              onPress={handleGoBack}
+              disabled={!canGoBack}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons
+                name="arrow-left"
+                size={20}
+                color={canGoBack ? COLORS.text : COLORS.textMuted}
+              />
+            </TouchableOpacity>
+
+            <View style={styles.titleContainer}>
+              <View style={styles.logoContainer}>
+                <MaterialCommunityIcons name="youtube" size={16} color={COLORS.text} />
+              </View>
+              <Text style={styles.titleMain}>Sub</Text>
+              <Text style={styles.titleAccent}>SRT</Text>
+            </View>
+
+            <View style={styles.headerBtn} />
+          </View>
+        </LinearGradient>
       )}
 
       <YouTubePlayer
@@ -282,6 +297,50 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  headerGradient: {
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,0,0,0.3)",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 8,
+    height: 44,
+  },
+  headerBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerBtnDisabled: {
+    opacity: 0.4,
+  },
+  titleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  logoContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: COLORS.primary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  titleMain: {
+    color: COLORS.text,
+    fontSize: 17,
+    fontWeight: "600",
+  },
+  titleAccent: {
+    color: COLORS.primary,
+    fontSize: 17,
+    fontWeight: "700",
   },
 });
 
