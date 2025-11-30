@@ -10,6 +10,11 @@ export const INJECTED_JAVASCRIPT = `
     let lastSubtitle = '';
     let timePollingId = null;
     let parentCheckId = null;
+    
+    // Subtitle style settings
+    let subtitleFontSize = 15;
+    let subtitleFontWeight = 'bold';
+    let subtitleFontStyle = 'normal';
 
     // 1. Setup Subtitle Layer (optimized)
     function initSubtitleLayer() {
@@ -18,10 +23,17 @@ export const INJECTED_JAVASCRIPT = `
       if (!subtitleLayer) {
         subtitleLayer = document.createElement('div');
         subtitleLayer.id = 'custom-subtitle-layer';
-        subtitleLayer.style.cssText = 'position:absolute;bottom:8px;left:16px;right:16px;text-align:center;color:#FFF;font-size:15px;font-weight:600;font-family:system-ui,sans-serif;text-shadow:0 1px 3px rgba(0,0,0,.9),-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;pointer-events:none;z-index:2147483647;display:none;line-height:1.5;will-change:contents;contain:content';
+        updateSubtitleStyle();
         document.body.appendChild(subtitleLayer);
       }
       return subtitleLayer;
+    }
+    
+    // Update subtitle style
+    function updateSubtitleStyle() {
+      if (!subtitleLayer) return;
+      const weight = subtitleFontWeight === 'bold' ? '600' : '400';
+      subtitleLayer.style.cssText = 'position:absolute;bottom:8px;left:16px;right:16px;text-align:center;color:#FFF;font-size:' + subtitleFontSize + 'px;font-weight:' + weight + ';font-style:' + subtitleFontStyle + ';font-family:system-ui,sans-serif;text-shadow:0 1px 3px rgba(0,0,0,.9),-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;pointer-events:none;z-index:2147483647;display:' + (lastSubtitle ? 'block' : 'none') + ';line-height:1.5;will-change:contents;contain:content';
     }
 
     // 2. Optimized video element finder with caching
@@ -62,6 +74,11 @@ export const INJECTED_JAVASCRIPT = `
           } else {
             layer.style.display = 'none';
           }
+        } else if (d.type === 'setSubtitleStyle') {
+          subtitleFontSize = d.payload.fontSize || 15;
+          subtitleFontWeight = d.payload.fontWeight || 'bold';
+          subtitleFontStyle = d.payload.fontStyle || 'normal';
+          updateSubtitleStyle();
         }
       } catch (e) {}
     }

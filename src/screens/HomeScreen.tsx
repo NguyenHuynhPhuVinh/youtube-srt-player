@@ -10,15 +10,25 @@ import {
 } from "react-native-webview";
 
 import { parseSRT, fixSRT, SubtitleItem } from "@utils/srtParser";
-import { saveSRT, getSRT, removeSRT } from "@utils/storage";
+import {
+  saveSRT,
+  getSRT,
+  removeSRT,
+  SubtitleSettings,
+  DEFAULT_SUBTITLE_SETTINGS,
+  getSubtitleSettings,
+  saveSubtitleSettings,
+} from "@utils/storage";
 import YouTubePlayer from "@components/YouTubePlayer";
 import SubtitleInputModal from "@components/SubtitleInputModal";
+import SubtitleSettingsModal from "@components/SubtitleSettingsModal";
 import FloatingButton from "@components/FloatingButton";
 
 import { COLORS } from "@constants/colors";
 
 const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
+  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [srtContent, setSrtContent] = useState("");
   const [subtitles, setSubtitles] = useState<SubtitleItem[]>([]);
   const [currentSubtitle, setCurrentSubtitle] = useState("");
@@ -26,9 +36,37 @@ const HomeScreen = () => {
   const [currentUrl, setCurrentUrl] = useState("");
   const [canGoBack, setCanGoBack] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [subtitleSettings, setSubtitleSettings] = useState<SubtitleSettings>(
+    DEFAULT_SUBTITLE_SETTINGS
+  );
 
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
+
+  // Load subtitle settings on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      const settings = await getSubtitleSettings();
+      setSubtitleSettings(settings);
+    };
+    loadSettings();
+  }, []);
+
+  // Apply subtitle style when video starts playing
+  useEffect(() => {
+    if (isVideoPlaying && webViewRef.current) {
+      // Small delay to ensure WebView is ready
+      const timer = setTimeout(() => {
+        webViewRef.current?.postMessage(
+          JSON.stringify({
+            type: "setSubtitleStyle",
+            payload: subtitleSettings,
+          })
+        );
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isVideoPlaying, subtitleSettings]);
 
   useEffect(() => {
     const loadSavedSRT = async () => {
@@ -112,6 +150,25 @@ const HomeScreen = () => {
     if (webViewRef.current && canGoBack) {
       webViewRef.current.goBack();
     }
+  };
+
+  // Apply subtitle style to WebView
+  const applySubtitleStyle = (settings: SubtitleSettings) => {
+    if (webViewRef.current) {
+      webViewRef.current.postMessage(
+        JSON.stringify({
+          type: "setSubtitleStyle",
+          payload: settings,
+        })
+      );
+    }
+  };
+
+  // Handle settings change
+  const handleSettingsChange = async (newSettings: SubtitleSettings) => {
+    setSubtitleSettings(newSettings);
+    applySubtitleStyle(newSettings);
+    await saveSubtitleSettings(newSettings);
   };
 
   const findSubtitle = (seconds: number) => {
@@ -199,6 +256,7 @@ const HomeScreen = () => {
       <FloatingButton
         visible={isVideoPlaying}
         onPress={() => setModalVisible(true)}
+        onSettingsPress={() => setSettingsModalVisible(true)}
         hasSubtitles={subtitles.length > 0}
       />
 
@@ -208,6 +266,13 @@ const HomeScreen = () => {
         srtContent={srtContent}
         setSrtContent={setSrtContent}
         onLoadSubtitles={handleLoadSubtitles}
+      />
+
+      <SubtitleSettingsModal
+        visible={settingsModalVisible}
+        onClose={() => setSettingsModalVisible(false)}
+        settings={subtitleSettings}
+        onSettingsChange={handleSettingsChange}
       />
     </View>
   );
