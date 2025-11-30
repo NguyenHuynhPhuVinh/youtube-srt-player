@@ -1,5 +1,11 @@
 import React from "react";
-import { View, Modal, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  View,
+  Modal,
+  StyleSheet,
+  TouchableOpacity,
+  Text as RNText,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -76,18 +82,18 @@ const SubtitleSettingsModal: React.FC<SubtitleSettingsModalProps> = ({
 
           {/* Preview */}
           <View style={styles.previewContainer}>
-            <Text
+            <RNText
               style={[
                 styles.previewText,
                 {
                   fontSize: settings.fontSize,
-                  fontWeight: settings.fontWeight === "bold" ? "600" : "400",
+                  fontWeight: settings.fontWeight === "bold" ? "700" : "400",
                   fontStyle: settings.fontStyle,
                 },
               ]}
             >
               Xem trước phụ đề
-            </Text>
+            </RNText>
           </View>
 
           {/* Font Size */}
