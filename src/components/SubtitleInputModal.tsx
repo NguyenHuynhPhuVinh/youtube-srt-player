@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useCallback } from "react";
 import {
   View,
   Modal,
@@ -11,13 +11,22 @@ import {
   TextInput as RNTextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Button, Text } from "react-native-paper";
+import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
+import * as Clipboard from "expo-clipboard";
 import { readAsStringAsync } from "expo-file-system/legacy";
 import { COLORS } from "@constants/colors";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+
+// Simple SRT format detection
+const isSRTFormat = (text: string): boolean => {
+  if (!text || text.length < 10) return false;
+  // Check for SRT patterns: number, timestamp with --> , text
+  const srtPattern = /^\d+\s*\n\d{2}:\d{2}:\d{2}[,.:]\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}[,.:]\d{3}/m;
+  return srtPattern.test(text.trim());
+};
 
 interface SubtitleInputModalProps {
   visible: boolean;
@@ -35,6 +44,45 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   onLoadSubtitles,
 }) => {
   const insets = useSafeAreaInsets();
+
+  // Auto-detect SRT from clipboard when modal opens
+  const checkClipboard = useCallback(async () => {
+    try {
+      const clipboardContent = await Clipboard.getStringAsync();
+      if (clipboardContent && isSRTFormat(clipboardContent) && !srtContent) {
+        Alert.alert(
+          "Phát hiện SRT",
+          "Clipboard có nội dung SRT. Bạn có muốn dán vào không?",
+          [
+            { text: "Không", style: "cancel" },
+            { text: "Dán", onPress: () => setSrtContent(clipboardContent) },
+          ]
+        );
+      }
+    } catch (error) {
+      // Clipboard access denied or empty
+    }
+  }, [srtContent, setSrtContent]);
+
+  useEffect(() => {
+    if (visible) {
+      checkClipboard();
+    }
+  }, [visible, checkClipboard]);
+
+  // Manual paste from clipboard
+  const handlePasteFromClipboard = async () => {
+    try {
+      const clipboardContent = await Clipboard.getStringAsync();
+      if (clipboardContent) {
+        setSrtContent(clipboardContent);
+      } else {
+        Alert.alert("Thông báo", "Clipboard trống.");
+      }
+    } catch (error) {
+      Alert.alert("Lỗi", "Không thể truy cập clipboard.");
+    }
+  };
 
   const handlePickFile = async () => {
     try {
@@ -103,18 +151,33 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-              style={styles.fileButton}
-              onPress={handlePickFile}
-              activeOpacity={0.7}
-            >
-              <MaterialCommunityIcons
-                name="file-document-outline"
-                size={20}
-                color={COLORS.textSecondary}
-              />
-              <Text style={styles.fileButtonText}>Chọn file .srt</Text>
-            </TouchableOpacity>
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={styles.fileButton}
+                onPress={handlePickFile}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons
+                  name="file-document-outline"
+                  size={20}
+                  color={COLORS.textSecondary}
+                />
+                <Text style={styles.fileButtonText}>Chọn file</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.pasteButton}
+                onPress={handlePasteFromClipboard}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons
+                  name="clipboard-text-outline"
+                  size={20}
+                  color={COLORS.textSecondary}
+                />
+                <Text style={styles.fileButtonText}>Dán</Text>
+              </TouchableOpacity>
+            </View>
 
             <View style={styles.inputContainer}>
               <RNTextInput
@@ -201,17 +264,33 @@ const styles = StyleSheet.create({
     top: 12,
     padding: 8,
   },
+  buttonRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 16,
+  },
   fileButton: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: COLORS.surfaceLight,
     borderRadius: 12,
     paddingVertical: 14,
-    marginBottom: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderStyle: "dashed",
+  },
+  pasteButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: 12,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   fileButtonText: {
     color: COLORS.textSecondary,
