@@ -32,6 +32,27 @@ const YouTubePlayer = React.forwardRef<WebView, YouTubePlayerProps>(
           mediaPlaybackRequiresUserAction={false}
           javaScriptEnabled={true}
           domStorageEnabled={true}
+          // Performance optimizations
+          cacheEnabled={true}
+          cacheMode="LOAD_CACHE_ELSE_NETWORK"
+          thirdPartyCookiesEnabled={true}
+          sharedCookiesEnabled={true}
+          // Reduce memory & improve scrolling
+          overScrollMode="never"
+          showsHorizontalScrollIndicator={false}
+          showsVerticalScrollIndicator={false}
+          // Hardware acceleration
+          androidLayerType="hardware"
+          // Reduce re-renders
+          startInLoadingState={false}
+          // Optimize rendering
+          renderToHardwareTextureAndroid={true}
+          removeClippedSubviews={true}
+          // Disable unnecessary features
+          textZoom={100}
+          scalesPageToFit={true}
+          setBuiltInZoomControls={false}
+          setDisplayZoomControls={false}
         />
       </View>
     );

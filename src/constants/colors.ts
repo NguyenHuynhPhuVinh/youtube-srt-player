@@ -1,12 +1,26 @@
 export const COLORS = {
-  background: "#000000",
-  surface: "#1E1E1E",
-  surfaceLight: "#2C2C2C",
-  primary: "#3EA6FF",
-  accent: "#FF0000",
+  // Base
+  background: "#0A0A0A",
+  surface: "#121212",
+  surfaceLight: "#1A1A1A",
+  surfaceElevated: "#242424",
+  
+  // Brand
+  primary: "#FF0000",
+  primaryDark: "#CC0000",
+  accent: "#FF4444",
+  
+  // Text
   text: "#FFFFFF",
-  textSecondary: "#666666",
-  border: "#444444",
-  overlay: "rgba(0,0,0,0.5)",
+  textSecondary: "#AAAAAA",
+  textMuted: "#666666",
+  
+  // UI Elements
+  border: "#2A2A2A",
+  borderLight: "#3A3A3A",
+  
+  // States
+  success: "#00C853",
+  overlay: "rgba(0,0,0,0.7)",
   transparent: "transparent",
 } as const;

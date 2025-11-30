@@ -8,17 +8,14 @@ import {
   Dimensions,
   TouchableOpacity,
   Alert,
+  TextInput as RNTextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  TextInput,
-  Button,
-  Text,
-  useTheme,
-  IconButton,
-} from "react-native-paper";
+import { Button, Text } from "react-native-paper";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import { readAsStringAsync } from "expo-file-system/legacy";
+import { COLORS } from "@constants/colors";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -38,12 +35,11 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
   onLoadSubtitles,
 }) => {
   const insets = useSafeAreaInsets();
-  const theme = useTheme();
 
   const handlePickFile = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: "*/*", // Allow all types, but we're looking for text/srt
+        type: "*/*",
         copyToCacheDirectory: true,
       });
 
@@ -51,7 +47,6 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
 
       const asset = result.assets[0];
       if (asset) {
-        // Check extension if needed, but for now just try to read it
         if (
           !asset.name.toLowerCase().endsWith(".srt") &&
           !asset.name.toLowerCase().endsWith(".txt")
@@ -93,69 +88,66 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
           <View
             style={[
               styles.bottomSheet,
-              {
-                paddingBottom: Math.max(insets.bottom, 24),
-                backgroundColor: theme.colors.elevation.level1,
-              },
+              { paddingBottom: Math.max(insets.bottom, 20) },
             ]}
           >
             <View style={styles.sheetHeader}>
-              <View
-                style={[
-                  styles.dragHandle,
-                  { backgroundColor: theme.colors.onSurfaceVariant },
-                ]}
-              />
-              <Text
-                variant="titleMedium"
-                style={{ color: theme.colors.onSurface }}
-              >
-                Thêm Phụ Đề (SRT)
-              </Text>
+              <View style={styles.dragHandle} />
+              <Text style={styles.title}>Phụ đề</Text>
+              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                <MaterialCommunityIcons
+                  name="close"
+                  size={20}
+                  color={COLORS.textSecondary}
+                />
+              </TouchableOpacity>
             </View>
 
-            <View style={styles.buttonRow}>
-              <Button
-                mode="outlined"
-                icon="file-upload"
-                onPress={handlePickFile}
-                style={styles.fileButton}
-              >
-                Chọn file .srt
-              </Button>
-            </View>
-
-            <TextInput
-              mode="outlined"
-              label="Nội dung SRT"
-              placeholder="Dán nội dung hoặc chọn file..."
-              multiline
-              value={srtContent}
-              onChangeText={setSrtContent}
-              style={styles.input}
-              contentStyle={{
-                fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
-              }}
-              autoCapitalize="none"
-              autoCorrect={false}
-              right={
-                srtContent.length > 0 ? (
-                  <TextInput.Icon
-                    icon="close"
-                    onPress={() => setSrtContent("")}
-                  />
-                ) : null
-              }
-            />
-
-            <Button
-              mode="contained"
-              onPress={onLoadSubtitles}
-              style={styles.actionButton}
-              contentStyle={{ paddingVertical: 6 }}
+            <TouchableOpacity
+              style={styles.fileButton}
+              onPress={handlePickFile}
+              activeOpacity={0.7}
             >
-              Xác nhận
-            </Button>
+              <MaterialCommunityIcons
+                name="file-document-outline"
+                size={20}
+                color={COLORS.textSecondary}
+              />
+              <Text style={styles.fileButtonText}>Chọn file .srt</Text>
+            </TouchableOpacity>
+
+            <View style={styles.inputContainer}>
+              <RNTextInput
+                placeholder="Dán nội dung SRT vào đây..."
+                placeholderTextColor={COLORS.textMuted}
+                multiline
+                value={srtContent}
+                onChangeText={setSrtContent}
+                style={styles.input}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {srtContent.length > 0 && (
+                <TouchableOpacity
+                  style={styles.clearButton}
+                  onPress={() => setSrtContent("")}
+                >
+                  <MaterialCommunityIcons
+                    name="close-circle"
+                    size={18}
+                    color={COLORS.textMuted}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={onLoadSubtitles}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.actionButtonText}>Áp dụng</Text>
+            </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
       </View>
@@ -167,7 +159,7 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: COLORS.overlay,
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -176,37 +168,91 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   bottomSheet: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 24,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
     width: "100%",
-    height: SCREEN_HEIGHT * 0.7, // Increased height slightly
+    height: SCREEN_HEIGHT * 0.65,
+    backgroundColor: COLORS.surface,
+    borderTopWidth: 1,
+    borderColor: COLORS.border,
   },
   sheetHeader: {
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 20,
+    position: "relative",
   },
   dragHandle: {
-    width: 32,
+    width: 36,
     height: 4,
     borderRadius: 2,
     marginBottom: 16,
-    opacity: 0.4,
+    backgroundColor: COLORS.borderLight,
   },
-  buttonRow: {
-    flexDirection: "row",
-    marginBottom: 16,
+  title: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+  },
+  closeButton: {
+    position: "absolute",
+    right: 0,
+    top: 12,
+    padding: 8,
   },
   fileButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderStyle: "dashed",
+  },
+  fileButtonText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    fontWeight: "500",
+    marginLeft: 8,
+  },
+  inputContainer: {
     flex: 1,
+    marginBottom: 16,
+    position: "relative",
   },
   input: {
     flex: 1,
-    marginBottom: 24,
-    backgroundColor: "transparent",
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: 12,
+    padding: 16,
+    paddingTop: 16,
+    color: COLORS.text,
+    fontSize: 13,
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+    textAlignVertical: "top",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  clearButton: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    padding: 4,
   },
   actionButton: {
-    borderRadius: 100,
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  actionButtonText: {
+    color: COLORS.text,
+    fontSize: 15,
+    fontWeight: "600",
   },
 });
 

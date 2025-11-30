@@ -1,5 +1,5 @@
 import React from "react";
-import { TouchableOpacity, StyleSheet } from "react-native";
+import { TouchableOpacity, StyleSheet, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "@constants/colors";
 
@@ -20,13 +20,15 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
     <TouchableOpacity
       style={[styles.fabButton, hasSubtitles && styles.fabButtonActive]}
       onPress={onPress}
-      activeOpacity={0.8}
+      activeOpacity={0.7}
     >
-      <MaterialCommunityIcons
-        name={hasSubtitles ? "check" : "plus"}
-        size={32}
-        color={COLORS.text}
-      />
+      <View style={styles.iconContainer}>
+        <MaterialCommunityIcons
+          name={hasSubtitles ? "subtitles" : "subtitles-outline"}
+          size={24}
+          color={COLORS.text}
+        />
+      </View>
     </TouchableOpacity>
   );
 };
@@ -34,26 +36,33 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
 const styles = StyleSheet.create({
   fabButton: {
     position: "absolute",
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.accent,
+    bottom: 20,
+    right: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: COLORS.surfaceElevated,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 20,
-    elevation: 4,
+    elevation: 8,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   fabButtonActive: {
-    backgroundColor: "#4CAF50", // Green color for active state
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primaryDark,
+  },
+  iconContainer: {
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

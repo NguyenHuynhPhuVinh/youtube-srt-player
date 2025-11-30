@@ -164,15 +164,28 @@ const HomeScreen = () => {
       <StatusBar barStyle="light-content" backgroundColor={COLORS.surface} />
 
       {!isFullscreen && (
-        <Appbar.Header style={{ backgroundColor: COLORS.surface }} mode="small">
+        <Appbar.Header
+          style={{
+            backgroundColor: COLORS.surface,
+            elevation: 0,
+            borderBottomWidth: 1,
+            borderBottomColor: COLORS.border,
+          }}
+          mode="small"
+        >
           {canGoBack ? (
-            <Appbar.BackAction onPress={handleGoBack} color={COLORS.text} />
+            <Appbar.BackAction onPress={handleGoBack} color={COLORS.textSecondary} />
           ) : (
             <Appbar.Action icon="youtube" color={COLORS.primary} />
           )}
           <Appbar.Content
-            title="YoutubeSubSRT"
-            titleStyle={{ color: COLORS.text }}
+            title="SubSRT"
+            titleStyle={{
+              color: COLORS.text,
+              fontWeight: "600",
+              fontSize: 18,
+              letterSpacing: 0.5,
+            }}
           />
         </Appbar.Header>
       )}
