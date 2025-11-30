@@ -17,6 +17,7 @@ import * as DocumentPicker from "expo-document-picker";
 import * as Clipboard from "expo-clipboard";
 import { readAsStringAsync } from "expo-file-system/legacy";
 import { COLORS } from "@constants/colors";
+import Button3D from "./Button3D";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -152,31 +153,20 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
             </View>
 
             <View style={styles.buttonRow}>
-              <TouchableOpacity
-                style={styles.fileButton}
+              <Button3D
                 onPress={handlePickFile}
-                activeOpacity={0.7}
-              >
-                <MaterialCommunityIcons
-                  name="file-document-outline"
-                  size={20}
-                  color={COLORS.textSecondary}
-                />
-                <Text style={styles.fileButtonText}>Chọn file</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.pasteButton}
+                icon="file-document-outline"
+                title="Chọn file"
+                variant="outline"
+                style={styles.rowButton}
+              />
+              <Button3D
                 onPress={handlePasteFromClipboard}
-                activeOpacity={0.7}
-              >
-                <MaterialCommunityIcons
-                  name="clipboard-text-outline"
-                  size={20}
-                  color={COLORS.textSecondary}
-                />
-                <Text style={styles.fileButtonText}>Dán</Text>
-              </TouchableOpacity>
+                icon="clipboard-text-outline"
+                title="Dán"
+                variant="outline"
+                style={styles.rowButton}
+              />
             </View>
 
             <View style={styles.inputContainer}>
@@ -204,13 +194,11 @@ const SubtitleInputModal: React.FC<SubtitleInputModalProps> = ({
               )}
             </View>
 
-            <TouchableOpacity
-              style={styles.actionButton}
+            <Button3D
               onPress={onLoadSubtitles}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.actionButtonText}>Áp dụng</Text>
-            </TouchableOpacity>
+              title="Áp dụng"
+              variant="primary"
+            />
           </View>
         </KeyboardAvoidingView>
       </View>
@@ -269,34 +257,8 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 16,
   },
-  fileButton: {
+  rowButton: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 12,
-    paddingVertical: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderStyle: "dashed",
-  },
-  pasteButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 12,
-    paddingVertical: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  fileButtonText: {
-    color: COLORS.textSecondary,
-    fontSize: 14,
-    fontWeight: "500",
-    marginLeft: 8,
   },
   inputContainer: {
     flex: 1,
@@ -321,17 +283,6 @@ const styles = StyleSheet.create({
     top: 12,
     right: 12,
     padding: 4,
-  },
-  actionButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  actionButtonText: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "600",
   },
 });
 

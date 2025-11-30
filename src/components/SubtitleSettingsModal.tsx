@@ -1,19 +1,12 @@
 import React from "react";
-import {
-  View,
-  Modal,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-} from "react-native";
+import { View, Modal, StyleSheet, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { COLORS } from "@constants/colors";
 import { SubtitleSettings } from "@utils/storage";
-
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+import Button3D from "./Button3D";
 
 interface SubtitleSettingsModalProps {
   visible: boolean;
@@ -114,59 +107,22 @@ const SubtitleSettingsModal: React.FC<SubtitleSettingsModalProps> = ({
 
           {/* Font Style Buttons */}
           <View style={styles.styleButtonsRow}>
-            <TouchableOpacity
-              style={[
-                styles.styleButton,
-                settings.fontWeight === "bold" && styles.styleButtonActive,
-              ]}
+            <Button3D
               onPress={toggleBold}
-              activeOpacity={0.7}
-            >
-              <MaterialCommunityIcons
-                name="format-bold"
-                size={24}
-                color={
-                  settings.fontWeight === "bold"
-                    ? COLORS.text
-                    : COLORS.textSecondary
-                }
-              />
-              <Text
-                style={[
-                  styles.styleButtonText,
-                  settings.fontWeight === "bold" && styles.styleButtonTextActive,
-                ]}
-              >
-                Đậm
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.styleButton,
-                settings.fontStyle === "italic" && styles.styleButtonActive,
-              ]}
+              icon="format-bold"
+              title="Đậm"
+              variant="secondary"
+              active={settings.fontWeight === "bold"}
+              style={styles.styleButton}
+            />
+            <Button3D
               onPress={toggleItalic}
-              activeOpacity={0.7}
-            >
-              <MaterialCommunityIcons
-                name="format-italic"
-                size={24}
-                color={
-                  settings.fontStyle === "italic"
-                    ? COLORS.text
-                    : COLORS.textSecondary
-                }
-              />
-              <Text
-                style={[
-                  styles.styleButtonText,
-                  settings.fontStyle === "italic" && styles.styleButtonTextActive,
-                ]}
-              >
-                Nghiêng
-              </Text>
-            </TouchableOpacity>
+              icon="format-italic"
+              title="Nghiêng"
+              variant="secondary"
+              active={settings.fontStyle === "italic"}
+              style={styles.styleButton}
+            />
           </View>
         </View>
       </View>
@@ -250,27 +206,6 @@ const styles = StyleSheet.create({
   },
   styleButton: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 12,
-    paddingVertical: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    gap: 8,
-  },
-  styleButtonActive: {
-    backgroundColor: COLORS.primaryDark,
-    borderColor: COLORS.primary,
-  },
-  styleButtonText: {
-    color: COLORS.textSecondary,
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  styleButtonTextActive: {
-    color: COLORS.text,
   },
 });
 

@@ -1,5 +1,5 @@
-import React from "react";
-import { TouchableOpacity, StyleSheet, View } from "react-native";
+import React, { useRef } from "react";
+import { Animated, Pressable, StyleSheet, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "@constants/colors";
 
@@ -9,6 +9,83 @@ interface FloatingButtonProps {
   visible: boolean;
   hasSubtitles?: boolean;
 }
+
+const SHADOW_HEIGHT = 4;
+
+interface Fab3DProps {
+  onPress: () => void;
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  size: number;
+  iconSize: number;
+  active?: boolean;
+}
+
+const Fab3D: React.FC<Fab3DProps> = ({
+  onPress,
+  icon,
+  size,
+  iconSize,
+  active = false,
+}) => {
+  const animatedValue = useRef(new Animated.Value(0)).current;
+
+  const handlePressIn = () => {
+    animatedValue.setValue(1);
+  };
+
+  const handlePressOut = () => {
+    animatedValue.setValue(0);
+  };
+
+  const translateY = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, SHADOW_HEIGHT],
+  });
+
+  const bgColor = active ? COLORS.primary : COLORS.surfaceElevated;
+  const shadowColor = active ? "#990000" : COLORS.background;
+  const borderColor = active ? COLORS.primaryDark : COLORS.border;
+
+  return (
+    <View style={[styles.fab3dContainer, { width: size, height: size + SHADOW_HEIGHT }]}>
+      <View
+        style={[
+          styles.fabShadow,
+          {
+            width: size,
+            height: size,
+            borderRadius: size * 0.3,
+            backgroundColor: shadowColor,
+          },
+        ]}
+      />
+      <Animated.View
+        style={[
+          styles.fabWrapper,
+          { transform: [{ translateY }] },
+        ]}
+      >
+        <Pressable
+          onPress={onPress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          style={[
+            styles.fabButton,
+            {
+              width: size,
+              height: size,
+              borderRadius: size * 0.3,
+              backgroundColor: bgColor,
+              borderColor: borderColor,
+            },
+          ]}
+        >
+          <MaterialCommunityIcons name={icon} size={iconSize} color={COLORS.text} />
+        </Pressable>
+      </Animated.View>
+    </View>
+  );
+};
 
 const FloatingButton: React.FC<FloatingButtonProps> = ({
   onPress,
@@ -20,31 +97,19 @@ const FloatingButton: React.FC<FloatingButtonProps> = ({
 
   return (
     <View style={styles.fabContainer}>
-      <TouchableOpacity
-        style={styles.settingsButton}
+      <Fab3D
         onPress={onSettingsPress}
-        activeOpacity={0.7}
-      >
-        <MaterialCommunityIcons
-          name="format-size"
-          size={20}
-          color={COLORS.text}
-        />
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.fabButton, hasSubtitles && styles.fabButtonActive]}
+        icon="format-size"
+        size={40}
+        iconSize={20}
+      />
+      <Fab3D
         onPress={onPress}
-        activeOpacity={0.7}
-      >
-        <View style={styles.iconContainer}>
-          <MaterialCommunityIcons
-            name={hasSubtitles ? "subtitles" : "subtitles-outline"}
-            size={24}
-            color={COLORS.text}
-          />
-        </View>
-      </TouchableOpacity>
+        icon={hasSubtitles ? "subtitles" : "subtitles-outline"}
+        size={52}
+        iconSize={26}
+        active={hasSubtitles}
+      />
     </View>
   );
 };
@@ -58,49 +123,21 @@ const styles = StyleSheet.create({
     gap: 10,
     zIndex: 20,
   },
-  settingsButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: COLORS.surfaceElevated,
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 6,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+  fab3dContainer: {
+    position: "relative",
+  },
+  fabShadow: {
+    position: "absolute",
+    bottom: 0,
+  },
+  fabWrapper: {
+    position: "absolute",
+    top: 0,
   },
   fabButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: COLORS.surfaceElevated,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 8,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  fabButtonActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primaryDark,
-  },
-  iconContainer: {
-    justifyContent: "center",
-    alignItems: "center",
+    borderWidth: 2,
   },
 });
 
