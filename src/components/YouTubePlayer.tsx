@@ -1,5 +1,5 @@
-import React from "react";
-import { StyleSheet, View } from "react-native";
+import React, { useMemo } from "react";
+import { StyleSheet, View, Platform } from "react-native";
 import {
   WebView,
   WebViewMessageEvent,
@@ -16,43 +16,67 @@ interface YouTubePlayerProps {
 
 const YouTubePlayer = React.forwardRef<WebView, YouTubePlayerProps>(
   ({ onMessage, onNavigationStateChange }, ref) => {
+    // Memoize source to prevent re-renders
+    const source = useMemo(() => ({ uri: "https://m.youtube.com" }), []);
+
     return (
       <View style={styles.videoContainer}>
         <WebView
           ref={ref}
-          source={{ uri: "https://m.youtube.com" }}
+          source={source}
           style={styles.webview}
           userAgent={CUSTOM_USER_AGENT}
           injectedJavaScript={INJECTED_JAVASCRIPT}
           onMessage={onMessage}
           onNavigationStateChange={onNavigationStateChange}
-          // Fullscreen & Rotation Config
+          // Fullscreen & Media
           allowsFullscreenVideo={true}
           allowsInlineMediaPlayback={true}
           mediaPlaybackRequiresUserAction={false}
           javaScriptEnabled={true}
           domStorageEnabled={true}
-          // Performance optimizations
+          // Cache & Cookies
           cacheEnabled={true}
           cacheMode="LOAD_CACHE_ELSE_NETWORK"
           thirdPartyCookiesEnabled={true}
           sharedCookiesEnabled={true}
-          // Reduce memory & improve scrolling
+          // Scrolling optimization
           overScrollMode="never"
           showsHorizontalScrollIndicator={false}
           showsVerticalScrollIndicator={false}
-          // Hardware acceleration
+          nestedScrollEnabled={false}
+          // Hardware acceleration - critical for performance
           androidLayerType="hardware"
-          // Reduce re-renders
-          startInLoadingState={false}
-          // Optimize rendering
           renderToHardwareTextureAndroid={true}
+          // Memory optimization
           removeClippedSubviews={true}
+          startInLoadingState={false}
           // Disable unnecessary features
           textZoom={100}
           scalesPageToFit={true}
           setBuiltInZoomControls={false}
           setDisplayZoomControls={false}
+          // Additional performance props
+          bounces={false}
+          scrollEnabled={true}
+          directionalLockEnabled={true}
+          automaticallyAdjustContentInsets={false}
+          contentInsetAdjustmentBehavior="never"
+          // Reduce JS bridge overhead
+          injectedJavaScriptBeforeContentLoaded=""
+          // iOS specific optimizations
+          {...(Platform.OS === "ios" && {
+            allowsBackForwardNavigationGestures: false,
+            allowsLinkPreview: false,
+            dataDetectorTypes: "none",
+          })}
+          // Android specific optimizations
+          {...(Platform.OS === "android" && {
+            mixedContentMode: "compatibility",
+            geolocationEnabled: false,
+            allowFileAccess: false,
+            saveFormDataDisabled: true,
+          })}
         />
       </View>
     );

@@ -8,15 +8,28 @@ export const INJECTED_JAVASCRIPT = `
     let cachedVideo = null;
     let lastTime = -1;
     let lastSubtitle = '';
-    let timePollingId = null;
+    let rafId = null;
     let parentCheckId = null;
+    let isPolling = false;
     
     // Subtitle style settings
     let subtitleFontSize = 15;
     let subtitleFontWeight = 'bold';
     let subtitleFontStyle = 'normal';
 
-    // 1. Setup Subtitle Layer (optimized)
+    // Throttle function for performance
+    const throttle = (fn, delay) => {
+      let last = 0;
+      return (...args) => {
+        const now = Date.now();
+        if (now - last >= delay) {
+          last = now;
+          fn(...args);
+        }
+      };
+    };
+
+    // 1. Setup Subtitle Layer (optimized with GPU acceleration)
     function initSubtitleLayer() {
       if (subtitleLayer) return subtitleLayer;
       subtitleLayer = document.getElementById('custom-subtitle-layer');
@@ -29,14 +42,14 @@ export const INJECTED_JAVASCRIPT = `
       return subtitleLayer;
     }
     
-    // Update subtitle style
+    // Update subtitle style with GPU acceleration
     function updateSubtitleStyle() {
       if (!subtitleLayer) return;
       const weight = subtitleFontWeight === 'bold' ? '600' : '400';
-      // Viền đen vừa phải - stroke mỏng + shadow 8 hướng
       const textStroke = '-webkit-text-stroke:0.8px #000;paint-order:stroke fill;';
       const textShadow = 'text-shadow:0 0 2px #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,0 -1px 0 #000,0 1px 0 #000,-1px 0 0 #000,1px 0 0 #000;';
-      subtitleLayer.style.cssText = 'position:absolute;bottom:8px;left:16px;right:16px;text-align:center;color:#FFF;font-size:' + subtitleFontSize + 'px;font-weight:' + weight + ';font-style:' + subtitleFontStyle + ';font-family:system-ui,sans-serif;' + textStroke + textShadow + 'pointer-events:none;z-index:2147483647;display:' + (lastSubtitle ? 'block' : 'none') + ';line-height:1.5;will-change:contents;contain:content';
+      // Added transform:translateZ(0) for GPU layer promotion
+      subtitleLayer.style.cssText = 'position:absolute;bottom:8px;left:16px;right:16px;text-align:center;color:#FFF;font-size:' + subtitleFontSize + 'px;font-weight:' + weight + ';font-style:' + subtitleFontStyle + ';font-family:system-ui,sans-serif;' + textStroke + textShadow + 'pointer-events:none;z-index:2147483647;display:' + (lastSubtitle ? 'block' : 'none') + ';line-height:1.5;transform:translateZ(0);backface-visibility:hidden;contain:layout style paint';
     }
 
     // 2. Optimized video element finder with caching
@@ -46,26 +59,36 @@ export const INJECTED_JAVASCRIPT = `
       return cachedVideo;
     }
 
-    // 3. Time Polling - optimized with requestAnimationFrame fallback
+    // 3. Time Polling using requestAnimationFrame for smoother performance
     function startTimePolling() {
-      if (timePollingId) return;
+      if (isPolling) return;
+      isPolling = true;
       
-      const poll = () => {
-        const video = getVideo();
-        if (video && !video.paused) {
-          const t = video.currentTime;
-          if (Math.abs(t - lastTime) > 0.15) {
-            lastTime = t;
-            window.ReactNativeWebView.postMessage('{"type":"currentTime","payload":' + t + '}');
+      let lastPollTime = 0;
+      const POLL_INTERVAL = 200; // ms between polls
+      
+      const poll = (timestamp) => {
+        if (!isPolling) return;
+        
+        if (timestamp - lastPollTime >= POLL_INTERVAL) {
+          lastPollTime = timestamp;
+          const video = getVideo();
+          if (video && !video.paused) {
+            const t = video.currentTime;
+            if (Math.abs(t - lastTime) > 0.2) {
+              lastTime = t;
+              window.ReactNativeWebView.postMessage('{"type":"currentTime","payload":' + t + '}');
+            }
           }
         }
+        rafId = requestAnimationFrame(poll);
       };
       
-      timePollingId = setInterval(poll, 150);
+      rafId = requestAnimationFrame(poll);
     }
 
-    // 4. Listen for Subtitles from RN (optimized)
-    function handleMessage(e) {
+    // 4. Listen for Subtitles from RN (optimized with batched updates)
+    const handleMessage = throttle((e) => {
       try {
         const d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
         if (d.type === 'setSubtitle' && d.payload !== lastSubtitle) {
@@ -84,7 +107,7 @@ export const INJECTED_JAVASCRIPT = `
           updateSubtitleStyle();
         }
       } catch (e) {}
-    }
+    }, 16); // ~60fps throttle
 
     document.addEventListener('message', handleMessage, { passive: true });
     window.addEventListener('message', handleMessage, { passive: true });
@@ -105,7 +128,7 @@ export const INJECTED_JAVASCRIPT = `
     document.addEventListener('fullscreenchange', handleFullscreenChange, { passive: true });
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange, { passive: true });
 
-    // 6. Parent check - less frequent
+    // 6. Parent check - less frequent (3s instead of 2s)
     parentCheckId = setInterval(() => {
       const fs = document.fullscreenElement || document.webkitFullscreenElement;
       const target = fs || document.body;
@@ -113,7 +136,14 @@ export const INJECTED_JAVASCRIPT = `
       if (layer.parentElement !== target) {
         target.appendChild(layer);
       }
-    }, 2000);
+    }, 3000);
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      isPolling = false;
+      if (rafId) cancelAnimationFrame(rafId);
+      if (parentCheckId) clearInterval(parentCheckId);
+    }, { passive: true });
 
     // Initialize
     initSubtitleLayer();
